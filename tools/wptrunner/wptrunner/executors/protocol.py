@@ -396,13 +396,27 @@ class TestDriverProtocolPart(ProtocolPart):
                 try:
                     self._switch_to_frame(item)
                 except ValueError:
-                    # The frame no longer exists, so continue
+                    # The frame no longer exists, or doesn't have a nested browsng context, so continue
                     pass
 
-            handle_window_id, nested_context_containers = self.parent.base.execute_script("""
-let contextParents = Array.from(document.querySelectorAll("frame, iframe, embed, object"))
-  .filter(elem => (elem.localName !== "embed" && elem.contentWindow) || elem.getSVGDocument());
-return [window.__wptrunner_id, contextParents]""")
+            try:
+                # Get the window id and a list of elements containing nested browsing contexts.
+                # For embed we can't tell fpr sure if there's a nested browsing context, so always return it
+                # and fail later if there isn't
+                result = self.parent.base.execute_script("""
+                let contextParents = Array.from(document.querySelectorAll("frame, iframe, embed, object"))
+                    .filter(elem => elem.localName !== "embed" ? (elem.contentWindow !== null) : true);
+                return [window.__wptrunner_id, contextParents]""")
+            except Exception:
+                continue
+
+            if result is None:
+                # With marionette at least this is possible if the content process crashed. Not quite
+                # sure how we want to handle that case.
+                continue
+
+            handle_window_id, nested_context_containers = result
+
             if handle_window_id and str(handle_window_id) == wptrunner_id:
                 return
 
