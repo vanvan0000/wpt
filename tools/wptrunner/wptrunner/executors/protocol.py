@@ -393,29 +393,32 @@ class TestDriverProtocolPart(ProtocolPart):
                 if not first or item != initial_window:
                     self.parent.base.set_window(item)
             else:
-                self._switch_to_frame(item)
+                try:
+                    self._switch_to_frame(item)
+                except ValueError:
+                    # The frame no longer exists, so continue
+                    pass
 
-            try:
-                handle_window_id = self.parent.base.execute_script("return window.__wptrunner_id")
-                if str(handle_window_id) == wptrunner_id:
-                    return
-            except Exception:
-                pass
-            frame_count = self.parent.base.execute_script("return window.length")
-            if frame_count:
-                for frame_id in reversed(range(0, frame_count)):
-                    # None here makes us switch back to the parent after we've processed the frame
-                    stack.append(None)
-                    stack.append(frame_id)
+            handle_window_id, nested_context_containers = self.parent.base.execute_script("""
+let contextParents = Array.from(document.querySelectorAll("frame, iframe, embed, object"))
+  .filter(elem => (elem.localName !== "embed" && elem.contentWindow) || elem.getSVGDocument());
+return [window.__wptrunner_id, contextParents]""")
+            if handle_window_id and str(handle_window_id) == wptrunner_id:
+                return
+
+            for elem in reversed(nested_context_containers):
+                # None here makes us switch back to the parent after we've processed the frame
+                stack.append(None)
+                stack.append(elem)
             first = False
 
         raise Exception("Window with id %s not found" % wptrunner_id)
 
     @abstractmethod
-    def _switch_to_frame(self, index):
+    def _switch_to_frame(self, index_or_elem):
         """Switch to a frame in the current window
 
-        :param int index: Frame id"""
+        :param int index_or_elem: Frame id or container element"""
         pass
 
     @abstractmethod
