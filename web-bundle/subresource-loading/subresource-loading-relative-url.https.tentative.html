@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Subresource loading with relative URLs</title>
+<link rel="help" href="https://github.com/WICG/webpackage/blob/master/explainers/subresource-loading.md" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+
+<body>
+  <!--
+       This test loads subresources from WebBundles using relative URLs instead
+       of absolute URLs with three test cases:
+       1. Load of a script.js subresource from a static-element.wbn, testing the
+       html preload scanner working with relative URLs in WebBundles.
+       2. Simple load of a root.js subresource from subresource.wbn using a
+       relative URL.
+       3. Simple load of a root.js subresource from subresource.wbn using an
+       incorrect relative URL leading to a failed fetch.
+  -->
+  <link
+  rel="webbundle"
+  href="../resources/wbn/static-element.wbn"
+  resources="/web-bundle/resources/wbn/static-element/resources/script.js"/>
+  <script src="/web-bundle/resources/wbn/static-element/resources/script.js"></script>
+
+  <script>
+    const onLoadPromise = new Promise((resolve) => {
+      window.addEventListener('load', resolve, false);
+    });
+
+    promise_test(async () => {
+      await onLoadPromise;
+
+      assert_equals(resources_script_result, 'loaded from webbundle');
+    }, "A subresource script.js should be loaded from WebBundle using the relative URL.");
+
+    promise_test(async () => {
+      const link = document.createElement("link");
+      const resource_url = '/web-bundle/resources/wbn/root.js';
+      link.rel = "webbundle";
+      link.href = "../resources/wbn/subresource.wbn";
+      link.resources.add(resource_url);
+      document.body.appendChild(link);
+
+      const response = await fetch(resource_url);
+      assert_true(response.ok);
+      const root = await response.text();
+      assert_equals(root, "export * from './submodule.js';\n");
+    }, "Subresources with relative URLs should be loaded from the WebBundle.");
+
+    promise_test(async () => {
+      const link = document.createElement("link");
+      const resource_url = 'web-bundle/resources/wbn/root.js';
+      link.rel = "webbundle";
+      link.href = "../resources/wbn/subresource.wbn";
+      link.resources.add(resource_url);
+      document.body.appendChild(link);
+
+      const response = await fetch(resource_url);
+      assert_false(response.ok);
+    }, "Wrong relative URL should result in a failed fetch.");
+  </script>
+</body>
