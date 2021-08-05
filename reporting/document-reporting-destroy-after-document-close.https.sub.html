@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <title>Test that reports are not sent without Reporting-Endpoints header, with previous header set on same URL</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+
+<body>
+  <iframe name="test"></iframe>
+  <script>
+    const base_url = `${location.protocol}//${location.host}`;
+    const endpoint = `${base_url}/reporting/resources/report.py`;
+    const report_id = 'd0d517bf-891b-457a-b970-8b2b2c81a0bf';
+    // Load a document that generates report into iframe.
+    // use wpt pipe to pass Reporting-Endpoints header in.
+    const w = window.open(`resources/generate-report.https.sub.html?pipe=header(Reporting-Endpoints,default="/reporting/resources/report.py?reportID=d0d517bf-891b-457a-b970-8b2b2c81a0bf")`, "test");
+    promise_test(async t => {
+      await wait(3000);
+      let reports = await pollReports(endpoint, report_id);
+      // Verify that reporting is configured on the document.
+      assert_equals(reports.length, 1);
+      // Navigate to same URL, without passing in Reporting-Endpoints header.
+      w.location = `resources/generate-report.https.sub.html`;
+      await wait(3000);
+      reports = await pollReports(endpoint, report_id);
+      // Verify no reports are sent this time.
+      assert_equals(reports.length, 0);
+
+    }, "No more reports received after navigation to same document without endpoint header");
+  </script>
+
+</body>
+
+</html>

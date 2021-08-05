@@ -13,10 +13,18 @@ async function pollReports(endpoint, id) {
   return reports;
 }
 
+async function pollNumResults(endpoint, id) {
+  const res = await fetch(`${endpoint}?reportID=${id}&op=retrieve_count`, { cache: 'no-store' });
+  const dict = await res.json();
+  if (dict.report_count == 'None')
+    return 0;
+  return JSON.parse(dict.report_count);
+}
+
 function checkReportExists(reports, type, url) {
   for (const report of reports) {
     if (report.type !== type) continue;
-    if (report.body.sourceFile === url) return true;
+    if (report.body.documentURL == url || report.body.sourceFile === url) return true;
   }
   assert_unreached(`A report of ${type} from ${url} is not found.`);
 }
