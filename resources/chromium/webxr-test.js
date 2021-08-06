@@ -733,7 +733,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        headFromEye: composeGFXTransform({
+        mojoFromView: this._getMojoFromViewer() * composeGFXTransform({
           position: [-0.032, 0, 0],
           orientation: [0, 0, 0, 1]
         }),
@@ -747,7 +747,7 @@ class MockRuntime {
           leftDegrees: 50.899,
           rightDegrees: 35.197
         },
-        headFromEye: composeGFXTransform({
+        mojoFromView: this._getMojoFromViewer() * composeGFXTransform({
           position: [0.032, 0, 0],
           orientation: [0, 0, 0, 1]
         }),
@@ -807,7 +807,7 @@ class MockRuntime {
     return {
       eye: viewEye,
       fieldOfView: fov,
-      headFromEye: composeGFXTransform(fakeXRViewInit.viewOffset),
+      mojoFromView: this._getMojoFromViewer() * composeGFXTransform(fakeXRViewInit.viewOffset),
       viewport: {
         width: fakeXRViewInit.resolution.width,
         height: fakeXRViewInit.resolution.height
@@ -881,9 +881,17 @@ class MockRuntime {
           }
         }
 
+        let views = this.displayInfo_.views;
+        for (let i = 0; i < views.length; i++) {
+          views[i].mojoFromView = this._getMojoFromViewer() * composeGFXTransform({
+            position: [-0.032, 0, 0],
+            orientation: [0, 0, 0, 1]
+          });
+        }
+
         const frameData = {
           pose: this.pose_,
-          views: [],
+          views: views,
           mojoSpaceReset: mojo_space_reset,
           inputState: input_state,
           timeDelta: {
@@ -1547,6 +1555,9 @@ class MockRuntime {
   }
 
   _getMojoFromViewer() {
+    if (!this.pose_) {
+      return XRMathHelper.identity();
+    }
     const transform = {
       position: [
         this.pose_.position.x,
