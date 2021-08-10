@@ -63,3 +63,26 @@ test(testCase => {
       inputBuffer.byteLength, 0,
       'NativeIOFileSync.write() should detach the input buffer');
 }, 'NativeIOFileSync.write detaches the input buffer');
+
+test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+  const file = createFileSync(testCase, 'test_file');
+
+  const writeBuffer = new Uint8Array(0);
+  const writeResult = file.write(writeBuffer, 0);
+  assert_equals(
+      writeResult.writtenBytes, 0,
+      'NativeIOFileSync.write() should return success if the buffer size' +
+          ' is 0.');
+}, 'NativeIOFileSync.write succeeds when writing 0 bytes');
+
+test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+  const file = createFileSync(testCase, 'test_file');
+
+  const readBuffer = new Uint8Array(0);
+  const readResult = file.read(readBuffer, 0);
+  assert_equals(
+      readResult.readBytes, 0,
+      'NativeIOFileSync.read() should return success if the buffer size is 0.');
+}, 'NativeIOFileSync.read succeeds when reading 0 bytes');

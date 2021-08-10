@@ -61,3 +61,25 @@ promise_test(async testCase => {
       'NativeIOFile.write() should return a buffer with the same byteLength' +
           'as the input buffer');
 }, 'NativeIOFile.write detaches the input buffer');
+
+promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+  const file = await createFile(testCase, 'test_file');
+
+  const writeBuffer = new Uint8Array(0);
+  const writeResult = await file.write(writeBuffer, 0);
+  assert_equals(
+      writeResult.writtenBytes, 0,
+      'NativeIOFile.write() should return success if the buffer size is 0.');
+}, 'NativeIOFile.write succeeds when writing 0 bytes');
+
+promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+  const file = await createFile(testCase, 'test_file');
+
+  const readBuffer = new Uint8Array(0);
+  const readResult = await file.read(readBuffer, 0);
+  assert_equals(
+      readResult.readBytes, 0,
+      'NativeIOFile.read() should return success if the buffer size is 0.');
+}, 'NativeIOFile.read succeeds when reading 0 bytes');
